@@ -1,24 +1,28 @@
-# Free Render web service. It pulls the image GitHub Actions publishes to GHCR.
-# Create it from the Render dashboard: New → Blueprint, and connect this repo.
-# Add a workspace registry credential named "ghcr" first (GitHub username + a
-# PAT with read:packages). Render prompts for the sync:false values.
+# Free Render web service. Render builds the Dockerfile from this repo.
+# The prebuilt GHCR image is published by GitHub Actions, but it does not
+# exist until that workflow runs, so the service does not pull it.
 services:
   - type: web
     name: portfolio
-    runtime: image
+    runtime: docker
     plan: free
     region: singapore
+    branch: main
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /
-    image:
-      url: ghcr.io/amankumar0503/portfolio:main
-      creds:
-        fromRegistryCreds:
-          name: ghcr
     envVars:
       - key: NODE_ENV
         value: production
       - key: MONGODB_DB
         value: portfolio
+      - key: NEXT_PUBLIC_CLERK_SIGN_IN_URL
+        value: /admin/login
+      - key: NEXT_PUBLIC_CLERK_SIGN_UP_URL
+        value: /admin/login
+      - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
       - key: CLERK_SECRET_KEY
         sync: false
       - key: ADMIN_EMAIL
