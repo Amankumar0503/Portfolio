@@ -16,13 +16,13 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-    <html lang="en" suppressHydrationWarning>
-      <body className="antialiased">
-        <Script
-          id="theme-script"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
+      <html lang="en" suppressHydrationWarning>
+        <body className="antialiased">
+          <Script
+            id="theme-script"
+            strategy="beforeInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `
               (function() {
                 const theme = localStorage.getItem('theme') || 'dark';
                 if (theme === 'dark') {
@@ -32,11 +32,11 @@ export default function RootLayout({
                 }
               })();
             `,
-          }}
-        />
-        {children}
-      </body>
-    </html>
+            }}
+          />
+          {children}
+        </body>
+      </html>
     </ClerkProvider>
   );
 }
