@@ -1,6 +1,7 @@
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { Toaster } from 'react-hot-toast'
 import Header from '@/components/public/Header'
 import Footer from '@/components/public/Footer'
@@ -11,6 +12,12 @@ export default function PublicLayout({
 }: {
   children: React.ReactNode
 }) {
+  const pathname = usePathname()
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [pathname])
+
   return (
     <div className="min-h-screen gradient-animated relative">
       <div className="relative z-10">

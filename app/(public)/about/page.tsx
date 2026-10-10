@@ -11,6 +11,10 @@ export default function AboutPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const previous = history.scrollRestoration
+    history.scrollRestoration = 'manual'
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+
     Promise.all([
       fetch('/api/about').then((res) => res.json()),
       fetch('/api/skills').then((res) => res.json()),
@@ -19,11 +23,17 @@ export default function AboutPage() {
         setAbout(aboutData)
         setSkills(skillsData)
         setLoading(false)
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
       })
       .catch((error) => {
         console.error('Error fetching data:', error)
         setLoading(false)
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
       })
+
+    return () => {
+      history.scrollRestoration = previous
+    }
   }, [])
 
   const skillsByCategory = skills.reduce((acc, skill) => {
@@ -36,7 +46,7 @@ export default function AboutPage() {
 
   if (loading) {
     return (
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden [overflow-anchor:none]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10">
           <div className="animate-pulse glass glass-noise rounded-3xl p-12">
             <div className="h-12 glass-strong rounded w-1/3 mb-8"></div>
@@ -51,7 +61,7 @@ export default function AboutPage() {
   }
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-hidden [overflow-anchor:none]">
       {/* Code Animation Background */}
       <CodeBackground />
       
