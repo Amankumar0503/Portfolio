@@ -1,38 +1,31 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
+import {
+  collections,
+  deleteDocById,
+  updateDocById,
+} from "@/lib/mongo/store";
+import type { Skill } from "@/types";
 
-// PUT - Admin only: Update skill
+export const runtime = "nodejs";
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const denied = await requireAdmin();
+    if (denied) return denied;
+
     const { id } = await params;
-    const supabase = await createClient();
-
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await request.json();
+    const skill = await updateDocById<Skill>(collections.skills, id, body);
 
-    const { data, error } = await supabase
-      .from("skills")
-      .update(body)
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!skill) {
+      return NextResponse.json({ error: "Skill not found" }, { status: 404 });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(skill);
   } catch (error) {
     console.error("Error updating skill:", error);
     return NextResponse.json(
@@ -42,30 +35,16 @@ export async function PUT(
   }
 }
 
-// DELETE - Admin only: Delete skill
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const denied = await requireAdmin();
+    if (denied) return denied;
+
     const { id } = await params;
-    const supabase = await createClient();
-
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { error } = await supabase.from("skills").delete().eq("id", id);
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
+    await deleteDocById(collections.skills, id);
     return NextResponse.json({ message: "Skill deleted successfully" });
   } catch (error) {
     console.error("Error deleting skill:", error);

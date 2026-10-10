@@ -1,165 +1,161 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import toast from 'react-hot-toast'
-import { ContactMessage } from '@/types'
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { ContactMessage } from "@/types";
+import { useConfirm } from "@/components/admin/ConfirmDialog";
 
 export default function AdminMessagesPage() {
-  const [messages, setMessages] = useState<ContactMessage[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null)
+  const confirm = useConfirm();
+  const [messages, setMessages] = useState<ContactMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
 
   useEffect(() => {
-    fetchMessages()
-  }, [])
+    fetchMessages();
+  }, []);
 
   const fetchMessages = async () => {
     try {
-      const res = await fetch('/api/messages')
-      const data = await res.json()
-      setMessages(data)
+      const res = await fetch("/api/messages");
+      const data = await res.json();
+      setMessages(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching messages:', error)
-      toast.error('Failed to load messages')
+      console.error("Error fetching messages:", error);
+      toast.error("Failed to load messages");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
+  const openMessage = async (message: ContactMessage) => {
+    setSelectedMessage(message);
+    if (message.is_read) return;
+
+    const res = await fetch("/api/messages", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: message.id, is_read: true }),
+    });
+
+    if (res.ok) {
+      setMessages((current) =>
+        current.map((item) =>
+          item.id === message.id ? { ...item, is_read: true } : item
+        )
+      );
+      setSelectedMessage({ ...message, is_read: true });
+    }
+  };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this message?')) return
+    const ok = await confirm({
+      title: "Delete message",
+      message: "This removes the message from your inbox.",
+    });
+    if (!ok) return;
 
     try {
-      const res = await fetch(`/api/messages/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to delete')
+      const res = await fetch(`/api/messages/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete");
 
-      toast.success('Message deleted!')
-      setSelectedMessage(null)
-      fetchMessages()
+      toast.success("Message deleted");
+      setSelectedMessage(null);
+      fetchMessages();
     } catch (error) {
-      console.error('Error deleting message:', error)
-      toast.error('Failed to delete message')
+      console.error("Error deleting message:", error);
+      toast.error("Failed to delete message");
     }
-  }
+  };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
   if (loading) {
+    return <div className="h-80 animate-pulse rounded-2xl bg-zinc-200 dark:bg-zinc-800" />;
+  }
+
+  if (messages.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="admin-panel px-6 py-16 text-center text-sm text-zinc-500">
+        No messages yet.
       </div>
-    )
+    );
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Contact Messages</h1>
-
-      {messages.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400">No messages yet.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Messages List */}
-          <div className="lg:col-span-1 space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                onClick={() => setSelectedMessage(message)}
-                className={`p-4 rounded-lg cursor-pointer transition-colors ${
-                  selectedMessage?.id === message.id
-                    ? 'bg-blue-100 dark:bg-blue-900'
-                    : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{message.name}</h3>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{message.email}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                  {formatDate(message.created_at)}
+    <div className="admin-panel grid min-h-[32rem] grid-cols-1 overflow-hidden lg:grid-cols-[18rem_1fr]">
+      <div className="max-h-[32rem] divide-y divide-zinc-100 overflow-y-auto border-b border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800 lg:max-h-none lg:border-b-0 lg:border-r">
+        {messages.map((message) => {
+          const selected = selectedMessage?.id === message.id;
+          return (
+            <button
+              key={message.id}
+              type="button"
+              onClick={() => openMessage(message)}
+              className={`block w-full px-4 py-4 text-left transition ${
+                selected ? "bg-zinc-100 dark:bg-zinc-800" : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="truncate text-sm font-medium text-zinc-900 dark:text-white">
+                  {message.name}
                 </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Message Detail */}
-          <div className="lg:col-span-2">
-            {selectedMessage ? (
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {selectedMessage.name}
-                    </h2>
-                    <a
-                      href={`mailto:${selectedMessage.email}`}
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      {selectedMessage.email}
-                    </a>
-                  </div>
-                  <button
-                    onClick={() => handleDelete(selectedMessage.id)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                  >
-                    Delete
-                  </button>
-                </div>
-
-                {selectedMessage.subject && (
-                  <div className="mb-4">
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Subject
-                    </h3>
-                    <p className="text-gray-900 dark:text-white">{selectedMessage.subject}</p>
-                  </div>
+                {!message.is_read && (
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-zinc-900 dark:bg-white" />
                 )}
-
-                <div className="mb-4">
-                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    Message
-                  </h3>
-                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                    <p className="text-gray-900 dark:text-white whitespace-pre-wrap">
-                      {selectedMessage.message}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  Received on {formatDate(selectedMessage.created_at)}
-                </div>
-
-                <div className="mt-6 flex gap-4">
-                  <a
-                    href={`mailto:${selectedMessage.email}?subject=Re: ${selectedMessage.subject || 'Your message'}`}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    Reply via Email
-                  </a>
-                </div>
               </div>
-            ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-8 text-center">
-                <p className="text-gray-500 dark:text-gray-400">
-                  Select a message to view details
+              <p className="mt-1 truncate text-sm text-zinc-500">{message.subject}</p>
+              <p className="mt-1 text-xs text-zinc-400">{formatDate(message.created_at)}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="p-6">
+        {selectedMessage ? (
+          <div className="flex h-full flex-col">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
+                  {selectedMessage.subject || "No subject"}
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500">
+                  {selectedMessage.name} · {selectedMessage.email}
                 </p>
               </div>
-            )}
+              <button
+                type="button"
+                onClick={() => handleDelete(selectedMessage.id)}
+                className="text-sm text-red-600"
+              >
+                Delete
+              </button>
+            </div>
+            <p className="mt-6 flex-1 whitespace-pre-wrap text-sm leading-7 text-zinc-800 dark:text-zinc-200">
+              {selectedMessage.message}
+            </p>
+            <div className="mt-6 flex items-center justify-between gap-4">
+              <p className="text-xs text-zinc-400">{formatDate(selectedMessage.created_at)}</p>
+              <a
+                href={`mailto:${selectedMessage.email}?subject=Re: ${selectedMessage.subject || "Your message"}`}
+                className="admin-btn"
+              >
+                Reply by email
+              </a>
+            </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="flex h-full items-center justify-center text-sm text-zinc-500">
+            Select a message.
+          </div>
+        )}
+      </div>
     </div>
-  )
+  );
 }

@@ -1,21 +1,19 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
+import {
+  byDisplayOrder,
+  collections,
+  createDoc,
+  listDocs,
+} from "@/lib/mongo/store";
+import type { Skill } from "@/types";
 
-// GET - Public access to all skills
+export const runtime = "nodejs";
+
 export async function GET() {
   try {
-    const supabase = await createClient();
-
-    const { data, error } = await supabase
-      .from("skills")
-      .select("*")
-      .order("display_order", { ascending: true });
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json(data);
+    const skills = byDisplayOrder(await listDocs<Skill>(collections.skills));
+    return NextResponse.json(skills);
   } catch (error) {
     console.error("Error fetching skills:", error);
     return NextResponse.json(
@@ -25,33 +23,14 @@ export async function GET() {
   }
 }
 
-// POST - Admin only: Create new skill
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const denied = await requireAdmin();
+    if (denied) return denied;
 
     const body = await request.json();
-
-    const { data, error } = await supabase
-      .from("skills")
-      .insert(body)
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json(data);
+    const skill = await createDoc<Skill>(collections.skills, body);
+    return NextResponse.json(skill);
   } catch (error) {
     console.error("Error creating skill:", error);
     return NextResponse.json(

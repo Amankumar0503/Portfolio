@@ -1,30 +1,24 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
+import { uploadFile } from "@/lib/cloudinary";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+export const runtime = "nodejs";
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPE = "application/pdf";
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const denied = await requireAdmin();
+    if (denied) return denied;
 
     const formData = await request.formData();
-    const file = formData.get("file") as File;
+    const file = formData.get("file") as File | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Validate file type
     if (file.type !== ALLOWED_TYPE) {
       return NextResponse.json(
         { error: "Invalid file type. Only PDF files are allowed" },
@@ -32,7 +26,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         { error: "File size exceeds 10MB limit" },
@@ -40,32 +33,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate unique filename
-    const fileName = `resume-${Date.now()}.pdf`;
-    const filePath = `documents/${fileName}`;
-
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from("documents")
-      .upload(filePath, file, {
-        cacheControl: "3600",
-        upsert: false,
-      });
-
-    if (error) {
-      console.error("Upload error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    // Get public URL
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("documents").getPublicUrl(data.path);
-
-    return NextResponse.json({
-      url: publicUrl,
-      path: data.path,
-    });
+    const uploaded = await uploadFile(`documents/resume-${Date.now()}.pdf`, file);
+    return NextResponse.json(uploaded);
   } catch (error) {
     console.error("Error uploading resume:", error);
     return NextResponse.json(

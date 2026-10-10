@@ -26,10 +26,16 @@ export default function ProjectsPage() {
       })
   }, [])
 
-  // Get all unique technologies
-  const allTechnologies = Array.from(
-    new Set(projects.flatMap((p) => p.technologies))
-  ).sort()
+  const allTechnologies = Object.entries(
+    projects.reduce<Record<string, number>>((counts, project) => {
+      for (const tech of project.technologies ?? []) {
+        counts[tech] = (counts[tech] ?? 0) + 1
+      }
+      return counts
+    }, {})
+  )
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([tech]) => tech)
 
   const filterProjects = (tech: string, search: string) => {
     let filtered = projects

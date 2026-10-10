@@ -1,26 +1,28 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
+import {
+  collections,
+  deleteDocById,
+  getDocById,
+  updateDocById,
+} from "@/lib/mongo/store";
+import type { Project } from "@/types";
 
-// GET - Public access to single project
+export const runtime = "nodejs";
+
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
+    const project = await getDocById<Project>(collections.projects, id);
 
-    const { data, error } = await supabase
-      .from("projects")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(project);
   } catch (error) {
     console.error("Error fetching project:", error);
     return NextResponse.json(
@@ -30,38 +32,23 @@ export async function GET(
   }
 }
 
-// PUT - Admin only: Update project
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const denied = await requireAdmin();
+    if (denied) return denied;
+
     const { id } = await params;
-    const supabase = await createClient();
-
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await request.json();
+    const project = await updateDocById<Project>(collections.projects, id, body);
 
-    const { data, error } = await supabase
-      .from("projects")
-      .update({ ...body, updated_at: new Date().toISOString() })
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(project);
   } catch (error) {
     console.error("Error updating project:", error);
     return NextResponse.json(
@@ -71,30 +58,16 @@ export async function PUT(
   }
 }
 
-// DELETE - Admin only: Delete project
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const denied = await requireAdmin();
+    if (denied) return denied;
+
     const { id } = await params;
-    const supabase = await createClient();
-
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { error } = await supabase.from("projects").delete().eq("id", id);
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
+    await deleteDocById(collections.projects, id);
     return NextResponse.json({ message: "Project deleted successfully" });
   } catch (error) {
     console.error("Error deleting project:", error);

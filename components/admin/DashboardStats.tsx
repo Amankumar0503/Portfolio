@@ -1,81 +1,33 @@
-import { DashboardStats as StatsType } from '@/types'
-import Link from 'next/link'
+import { DashboardStats as StatsType } from "@/types";
+import Link from "next/link";
 
 interface DashboardStatsProps {
-  stats: StatsType
+  stats: StatsType;
 }
 
 export default function DashboardStats({ stats }: DashboardStatsProps) {
   const statCards = [
-    {
-      label: 'Total Projects',
-      value: stats.totalProjects,
-      icon: '🚀',
-      color: 'bg-blue-500',
-      link: '/admin/projects',
-    },
-    {
-      label: 'Featured Projects',
-      value: stats.featuredProjects,
-      icon: '⭐',
-      color: 'bg-yellow-500',
-      link: '/admin/projects',
-    },
-    {
-      label: 'Skills',
-      value: stats.totalSkills,
-      icon: '💡',
-      color: 'bg-green-500',
-      link: '/admin/skills',
-    },
-    {
-      label: 'Experiences',
-      value: stats.totalExperiences,
-      icon: '💼',
-      color: 'bg-purple-500',
-      link: '/admin/experience',
-    },
-    {
-      label: 'Unread Messages',
-      value: stats.unreadMessages,
-      icon: '✉️',
-      color: 'bg-red-500',
-      link: '/admin/messages',
-    },
-    {
-      label: 'Total Messages',
-      value: stats.totalMessages,
-      icon: '📧',
-      color: 'bg-indigo-500',
-      link: '/admin/messages',
-    },
-  ]
+    { label: "Projects", value: stats.totalProjects, hint: `${stats.featuredProjects} featured`, link: "/admin/projects" },
+    { label: "Skills", value: stats.totalSkills, hint: "On your about page", link: "/admin/skills" },
+    { label: "Experience", value: stats.totalExperiences, hint: "Timeline entries", link: "/admin/experience" },
+    { label: "Unread", value: stats.unreadMessages, hint: `${stats.totalMessages} total messages`, link: "/admin/messages" },
+  ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {statCards.map((card, index) => (
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {statCards.map((card) => (
         <Link
-          key={index}
+          key={card.label}
           href={card.link}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-all duration-300 hover:shadow-xl hover:scale-105 cursor-pointer group"
+          className="admin-panel p-5 transition hover:border-zinc-400 dark:hover:border-zinc-600"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors">
-                {card.label}
-              </p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                {card.value}
-              </p>
-            </div>
-            <div
-              className={`${card.color} w-14 h-14 rounded-full flex items-center justify-center text-2xl group-hover:scale-110 transition-transform`}
-            >
-              {card.icon}
-            </div>
-          </div>
+          <p className="text-sm text-zinc-500">{card.label}</p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight text-zinc-900 dark:text-white">
+            {card.value}
+          </p>
+          <p className="mt-1 text-xs text-zinc-500">{card.hint}</p>
         </Link>
       ))}
     </div>
-  )
+  );
 }

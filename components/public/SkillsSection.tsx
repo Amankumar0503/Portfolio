@@ -78,7 +78,7 @@ export default function SkillsSection() {
                       <div className="relative w-full glass rounded-full h-2.5 overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20"></div>
                         <div
-                          className="relative bg-gradient-to-r from-blue-400 to-purple-400 h-2.5 rounded-full transition-all duration-1000 shadow-lg shadow-blue-500/50"
+                          className="skill-bar relative bg-gradient-to-r from-blue-400 to-purple-400 h-2.5 rounded-full shadow-lg shadow-blue-500/50"
                           style={{ width: `${skill.proficiency}%` }}
                         ></div>
                       </div>

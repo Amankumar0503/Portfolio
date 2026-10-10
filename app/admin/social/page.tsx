@@ -2,20 +2,23 @@
 
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
+import { numberField, numberOrZero } from '@/lib/utils'
 import DataTable from '@/components/admin/DataTable'
+import { useConfirm } from '@/components/admin/ConfirmDialog'
 import { SocialLink } from '@/types'
 
 export default function AdminSocialLinksPage() {
+  const confirm = useConfirm()
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([])
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
   const [editingLink, setEditingLink] = useState<SocialLink | null>(null)
   
   const [formData, setFormData] = useState({
     platform: '',
     url: '',
     icon: '',
-    display_order: 0,
+    display_order: 0 as number | '',
+    is_visible: true,
   })
 
   useEffect(() => {
@@ -45,7 +48,10 @@ export default function AdminSocialLinksPage() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          display_order: numberOrZero(formData.display_order),
+        }),
       })
 
       if (!res.ok) throw new Error('Failed to save')
@@ -66,15 +72,19 @@ export default function AdminSocialLinksPage() {
       url: link.url,
       icon: link.icon,
       display_order: link.display_order,
+      is_visible: link.is_visible !== false,
     })
-    setShowForm(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this social link?')) return
+  const handleDelete = async (link: SocialLink) => {
+    const ok = await confirm({
+      title: 'Delete social link',
+      message: `Delete the ${link.platform} link?`,
+    })
+    if (!ok) return
 
     try {
-      const res = await fetch(`/api/social/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/social/${link.id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed to delete')
 
       toast.success('Social link deleted!')
@@ -86,9 +96,8 @@ export default function AdminSocialLinksPage() {
   }
 
   const resetForm = () => {
-    setFormData({ platform: '', url: '', icon: '', display_order: 0 })
+    setFormData({ platform: '', url: '', icon: '', display_order: 0, is_visible: true })
     setEditingLink(null)
-    setShowForm(false)
   }
 
   const columns = [
@@ -99,32 +108,23 @@ export default function AdminSocialLinksPage() {
   ]
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Social Links</h1>
-        <button
-          onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          + Add Social Link
-        </button>
-      </div>
+    <div className="space-y-6">
+      <p className="text-sm text-zinc-500">Links shown in the site footer.</p>
 
-      {showForm && (
-        <div className="mb-6 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+        <div className="admin-panel mb-6 p-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
             {editingLink ? 'Edit Social Link' : 'Add New Social Link'}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="admin-label">
                   Platform
                 </label>
                 <select
                   value={formData.platform}
                   onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="admin-input"
                   required
                 >
                   <option value="">Select Platform</option>
@@ -137,61 +137,60 @@ export default function AdminSocialLinksPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="admin-label">
                   Icon (Font Awesome name)
                 </label>
                 <input
                   type="text"
                   value={formData.icon}
                   onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="e.g., github, linkedin, twitter"
+                  className="admin-input"
+                  placeholder="github, linkedin, twitter, email, or an emoji"
                   required
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="admin-label">
                 URL
               </label>
               <input
                 type="url"
                 value={formData.url}
                 onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                className="admin-input"
                 placeholder="https://github.com/yourusername"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="admin-label">
                 Display Order
               </label>
               <input
                 type="number"
                 value={formData.display_order}
-                onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) })}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                onChange={(e) => setFormData({ ...formData, display_order: numberField(e.target.value) })}
+                className="admin-input"
               />
             </div>
             <div className="flex gap-4">
               <button
                 type="submit"
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="admin-btn"
               >
                 {editingLink ? 'Update' : 'Add'} Social Link
               </button>
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+                className="admin-btn-ghost"
               >
                 Cancel
               </button>
             </div>
           </form>
         </div>
-      )}
 
       <DataTable
         data={socialLinks}

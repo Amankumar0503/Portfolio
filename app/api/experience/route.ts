@@ -1,21 +1,33 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
+import {
+  byDisplayOrder,
+  collections,
+  createDoc,
+  listDocs,
+} from "@/lib/mongo/store";
+import type { Experience } from "@/types";
 
-// GET - Public access to all experiences
+export const runtime = "nodejs";
+
+function asExperience(body: Record<string, unknown>) {
+  const endDate = body.end_date;
+  return {
+    ...body,
+    type: body.type ?? "experience",
+    end_date: endDate === "" || body.is_current ? null : endDate,
+  };
+}
+
 export async function GET() {
   try {
-    const supabase = await createClient();
-
-    const { data, error } = await supabase
-      .from("experiences")
-      .select("*")
-      .order("display_order", { ascending: true });
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json(data);
+    const timeline = byDisplayOrder(
+      await listDocs<Experience>(collections.timeline)
+    );
+    const experiences = timeline.filter(
+      (item) => !item.type || item.type === "experience"
+    );
+    return NextResponse.json(experiences);
   } catch (error) {
     console.error("Error fetching experiences:", error);
     return NextResponse.json(
@@ -25,38 +37,14 @@ export async function GET() {
   }
 }
 
-// POST - Admin only: Create new experience
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
+    const denied = await requireAdmin();
+    if (denied) return denied;
 
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = await request.json();
-
-    // Convert empty string to null for end_date
-    if (body.end_date === "" || body.is_current) {
-      body.end_date = null;
-    }
-
-    const { data, error } = await supabase
-      .from("experiences")
-      .insert(body)
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json(data);
+    const body = asExperience(await request.json());
+    const experience = await createDoc<Experience>(collections.timeline, body);
+    return NextResponse.json(experience);
   } catch (error) {
     console.error("Error creating experience:", error);
     return NextResponse.json(

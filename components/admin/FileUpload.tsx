@@ -73,9 +73,7 @@ export default function FileUpload({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-        {label}
-      </label>
+      {label ? <label className="admin-label">{label}</label> : null}
 
       <div className="flex flex-col items-start">
         {fileName && (
@@ -98,7 +96,7 @@ export default function FileUpload({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+          className="admin-btn"
         >
           {uploading ? 'Uploading...' : fileName ? 'Change File' : 'Select PDF'}
         </button>

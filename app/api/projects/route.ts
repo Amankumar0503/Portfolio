@@ -1,29 +1,25 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
+import {
+  byDisplayOrder,
+  collections,
+  createDoc,
+  listDocs,
+} from "@/lib/mongo/store";
+import type { Project } from "@/types";
 
-// GET - Public access to all projects
+export const runtime = "nodejs";
+
 export async function GET(request: Request) {
   try {
-    const supabase = await createClient();
-    const { searchParams } = new URL(request.url);
-    const featured = searchParams.get("featured");
-
-    let query = supabase
-      .from("projects")
-      .select("*")
-      .order("display_order", { ascending: true });
+    const featured = new URL(request.url).searchParams.get("featured");
+    let projects = byDisplayOrder(await listDocs<Project>(collections.projects));
 
     if (featured === "true") {
-      query = query.eq("is_featured", true);
+      projects = projects.filter((project) => project.is_featured);
     }
 
-    const { data, error } = await query;
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json(data);
+    return NextResponse.json(projects);
   } catch (error) {
     console.error("Error fetching projects:", error);
     return NextResponse.json(
@@ -33,33 +29,14 @@ export async function GET(request: Request) {
   }
 }
 
-// POST - Admin only: Create new project
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const denied = await requireAdmin();
+    if (denied) return denied;
 
     const body = await request.json();
-
-    const { data, error } = await supabase
-      .from("projects")
-      .insert(body)
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json(data);
+    const project = await createDoc<Project>(collections.projects, body);
+    return NextResponse.json(project);
   } catch (error) {
     console.error("Error creating project:", error);
     return NextResponse.json(

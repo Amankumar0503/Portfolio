@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import ContactForm from '@/components/public/ContactForm'
 import CodeBackground from '@/components/public/CodeBackground'
 import { SocialLink } from '@/types'
+import SocialIcon from '@/components/public/SocialIcon'
 
 export default function ContactPage() {
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([])
@@ -72,7 +73,9 @@ export default function ContactPage() {
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 glass-strong glass-hover rounded-xl px-4 py-3 transition-all group"
                       >
-                        <span className="text-2xl group-hover:scale-110 transition-transform">{social.icon}</span>
+                        <span className="group-hover:scale-110 transition-transform">
+                          <SocialIcon name={social.icon || social.platform} />
+                        </span>
                         <span className="text-gray-800 dark:text-gray-300 font-medium">
                           {social.platform}
                         </span>

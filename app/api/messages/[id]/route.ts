@@ -1,33 +1,19 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
+import { collections, deleteDocById } from "@/lib/mongo/store";
 
-// DELETE - Admin only: Delete message
+export const runtime = "nodejs";
+
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const denied = await requireAdmin();
+    if (denied) return denied;
+
     const { id } = await params;
-    const supabase = await createClient();
-
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { error } = await supabase
-      .from("contact_messages")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
+    await deleteDocById(collections.messages, id);
     return NextResponse.json({ message: "Message deleted successfully" });
   } catch (error) {
     console.error("Error deleting message:", error);

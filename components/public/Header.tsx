@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import { setTheme, themeOrigin } from '@/lib/theme'
 
 export default function Header() {
   const [isDark, setIsDark] = useState(true)
@@ -15,11 +16,9 @@ export default function Header() {
     document.documentElement.classList.toggle('dark', theme === 'dark')
   }, [])
 
-  const toggleTheme = () => {
-    const newTheme = isDark ? 'light' : 'dark'
-    setIsDark(!isDark)
-    localStorage.setItem('theme', newTheme)
-    document.documentElement.classList.toggle('dark')
+  const toggleTheme = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const next = !isDark
+    setTheme(next, themeOrigin(event), () => setIsDark(next))
   }
 
   const navLinks = [
@@ -57,17 +56,7 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
-            
-            {/* Admin Login Link */}
-            <Link
-              href="/admin/login"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-medium px-4 py-2 rounded-lg transition-all glass-strong text-blue-600 dark:text-blue-300 shadow-lg hover:scale-105"
-            >
-              Admin
-            </Link>
-            
+
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
@@ -122,8 +111,9 @@ export default function Header() {
         </div>
 
         {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden py-4 space-y-2 glass-noise rounded-2xl p-4 mt-2 shadow-xl">
+        <div className={`menu-panel md:hidden ${isMobileMenuOpen ? "is-open" : ""}`}>
+          <div className="overflow-hidden">
+          <div className="py-4 space-y-2 glass-noise rounded-2xl p-4 mt-2 shadow-xl">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -138,19 +128,9 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
-            
-            {/* Admin Login Link Mobile */}
-            <Link
-              href="/admin/login"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="block px-4 py-3 rounded-lg transition-all glass-strong text-blue-600 dark:text-blue-300 text-center"
-            >
-              Admin
-            </Link>
           </div>
-        )}
+          </div>
+        </div>
       </nav>
     </header>
   )

@@ -41,11 +41,12 @@ export interface Experience {
   position: string;
   description: string;
   start_date: string;
-  end_date?: string;
+  end_date?: string | null;
   is_current: boolean;
   location?: string;
   display_order: number;
   created_at: string;
+  type?: "experience" | "education" | "milestone";
 }
 
 export interface SocialLink {

@@ -1,77 +1,28 @@
-import { createClient as createBrowserClient } from "./supabase/client";
-import { createClient as createServerClient } from "./supabase/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import { isAdminEmail } from "@/lib/admin-email";
 
-/**
- * Get the current authenticated user (client-side)
- */
-export async function getCurrentUser() {
-  const supabase = createBrowserClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+export { isAdminEmail };
 
-  if (error) {
-    console.error("Error getting user:", error);
-    return null;
-  }
+export async function getAdminStatus() {
+  const { userId } = await auth();
+  if (!userId) return "signed-out" as const;
 
-  return user;
+  const user = await currentUser();
+  const email = user?.primaryEmailAddress?.emailAddress;
+  return isAdminEmail(email) ? ("admin" as const) : ("forbidden" as const);
 }
 
-/**
- * Get the current authenticated user (server-side)
- */
-export async function getCurrentUserServer() {
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+export async function requireAdmin() {
+  const status = await getAdminStatus();
 
-  if (error) {
-    console.error("Error getting user:", error);
-    return null;
+  if (status === "signed-out") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  return user;
-}
-
-/**
- * Sign in with email and password
- */
-export async function signIn(email: string, password: string) {
-  const supabase = createBrowserClient();
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    throw new Error(error.message);
+  if (status === "forbidden") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  return data;
-}
-
-/**
- * Sign out
- */
-export async function signOut() {
-  const supabase = createBrowserClient();
-
-  const { error } = await supabase.auth.signOut();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-}
-
-/**
- * Check if user is authenticated (server-side)
- */
-export async function isAuthenticated() {
-  const user = await getCurrentUserServer();
-  return !!user;
+  return null;
 }

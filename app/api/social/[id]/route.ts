@@ -1,38 +1,34 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
+import {
+  collections,
+  deleteDocById,
+  updateDocById,
+} from "@/lib/mongo/store";
+import type { SocialLink } from "@/types";
 
-// PUT - Admin only: Update social link
+export const runtime = "nodejs";
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const denied = await requireAdmin();
+    if (denied) return denied;
+
     const { id } = await params;
-    const supabase = await createClient();
-
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await request.json();
+    const link = await updateDocById<SocialLink>(collections.social, id, body);
 
-    const { data, error } = await supabase
-      .from("social_links")
-      .update(body)
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!link) {
+      return NextResponse.json(
+        { error: "Social link not found" },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(link);
   } catch (error) {
     console.error("Error updating social link:", error);
     return NextResponse.json(
@@ -42,30 +38,16 @@ export async function PUT(
   }
 }
 
-// DELETE - Admin only: Delete social link
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const denied = await requireAdmin();
+    if (denied) return denied;
+
     const { id } = await params;
-    const supabase = await createClient();
-
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { error } = await supabase.from("social_links").delete().eq("id", id);
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
+    await deleteDocById(collections.social, id);
     return NextResponse.json({ message: "Social link deleted successfully" });
   } catch (error) {
     console.error("Error deleting social link:", error);

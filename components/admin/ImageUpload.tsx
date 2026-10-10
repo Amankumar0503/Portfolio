@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { uploadFile } from '@/lib/api'
 import { formatFileSize } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -23,6 +23,10 @@ export default function ImageUpload({
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState<string | null>(currentImageUrl || null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setPreview(currentImageUrl || null)
+  }, [currentImageUrl])
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -70,9 +74,7 @@ export default function ImageUpload({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-        {label}
-      </label>
+      {label ? <label className="admin-label">{label}</label> : null}
 
       <div className="flex flex-col items-center">
         {preview && (
@@ -97,7 +99,7 @@ export default function ImageUpload({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+          className="admin-btn"
         >
           {uploading ? 'Uploading...' : preview ? 'Change Image' : 'Select Image'}
         </button>

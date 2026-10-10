@@ -76,35 +76,35 @@ export default function AdminAboutPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-          Edit About Section
-        </h1>
+    <div className="mx-auto max-w-3xl">
+        <p className="mb-6 text-sm text-zinc-500">
+          This is the bio, photo, and resume on the public site.
+        </p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="admin-panel space-y-6 p-6">
           {/* Profile Image */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="admin-label">
               Profile Image
             </label>
             <ImageUpload
               currentImageUrl={formData.profile_image_url}
               onUploadComplete={(url) => setFormData({ ...formData, profile_image_url: url })}
               bucket="profile-images"
+              label=""
             />
           </div>
 
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="admin-label">
               Title / Role
             </label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              className="admin-input"
               placeholder="e.g., Full Stack Developer"
               required
             />
@@ -112,14 +112,14 @@ export default function AdminAboutPage() {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="admin-label">
               Description / Bio
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={8}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              className="admin-input"
               placeholder="Write about yourself, your experience, skills, and what you're passionate about..."
               required
             />
@@ -127,7 +127,7 @@ export default function AdminAboutPage() {
 
           {/* Resume Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="admin-label">
               Resume (PDF)
             </label>
             <FileUpload
@@ -136,6 +136,7 @@ export default function AdminAboutPage() {
               accept=".pdf"
               maxSize={10}
               bucket="documents"
+              label=""
             />
           </div>
 
@@ -144,20 +145,19 @@ export default function AdminAboutPage() {
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="admin-btn"
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
             <button
               type="button"
               onClick={() => router.push('/admin')}
-              className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+              className="admin-btn-ghost"
             >
               Cancel
             </button>
           </div>
         </form>
-      </div>
     </div>
   )
 }

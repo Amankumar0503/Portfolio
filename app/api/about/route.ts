@@ -1,18 +1,22 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
+import { getAbout, saveAbout } from "@/lib/mongo/store";
+import type { About } from "@/types";
 
-// GET - Public access to about info
+export const runtime = "nodejs";
+
+const placeholder: About = {
+  id: "profile",
+  title: "Welcome to My Portfolio",
+  description:
+    "This is a placeholder description. Please update this from the admin dashboard.",
+  updated_at: new Date(0).toISOString(),
+};
+
 export async function GET() {
   try {
-    const supabase = await createClient();
-
-    const { data, error } = await supabase.from("about").select("*").single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json(data);
+    const about = await getAbout<About>();
+    return NextResponse.json(about ?? placeholder);
   } catch (error) {
     console.error("Error fetching about:", error);
     return NextResponse.json(
@@ -22,71 +26,20 @@ export async function GET() {
   }
 }
 
-// PUT - Admin only: Update about info
 export async function PUT(request: Request) {
   try {
-    const supabase = await createClient();
-
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const denied = await requireAdmin();
+    if (denied) return denied;
 
     const body = await request.json();
-    const { title, description, profile_image_url, resume_url } = body;
+    const about = await saveAbout<About>({
+      title: body.title,
+      description: body.description,
+      profile_image_url: body.profile_image_url ?? null,
+      resume_url: body.resume_url ?? null,
+    });
 
-    // Get existing about record
-    const { data: existing } = await supabase
-      .from("about")
-      .select("id")
-      .single();
-
-    let result;
-
-    if (existing) {
-      // Update existing
-      const { data, error } = await supabase
-        .from("about")
-        .update({
-          title,
-          description,
-          profile_image_url,
-          resume_url,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existing.id)
-        .select()
-        .single();
-
-      result = { data, error };
-    } else {
-      // Insert new
-      const { data, error } = await supabase
-        .from("about")
-        .insert({
-          title,
-          description,
-          profile_image_url,
-          resume_url,
-        })
-        .select()
-        .single();
-
-      result = { data, error };
-    }
-
-    if (result.error) {
-      return NextResponse.json(
-        { error: result.error.message },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(result.data);
+    return NextResponse.json(about);
   } catch (error) {
     console.error("Error updating about:", error);
     return NextResponse.json(

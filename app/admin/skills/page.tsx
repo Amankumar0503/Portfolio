@@ -2,20 +2,22 @@
 
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
+import { numberField, numberOrZero } from '@/lib/utils'
 import DataTable from '@/components/admin/DataTable'
+import { useConfirm } from '@/components/admin/ConfirmDialog'
 import { Skill } from '@/types'
 
 export default function AdminSkillsPage() {
+  const confirm = useConfirm()
   const [skills, setSkills] = useState<Skill[]>([])
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null)
   
   const [formData, setFormData] = useState({
     name: '',
     category: '',
-    proficiency: 50,
-    display_order: 0,
+    proficiency: 50 as number | '',
+    display_order: 0 as number | '',
   })
 
   useEffect(() => {
@@ -45,7 +47,11 @@ export default function AdminSkillsPage() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          proficiency: numberOrZero(formData.proficiency),
+          display_order: numberOrZero(formData.display_order),
+        }),
       })
 
       if (!res.ok) throw new Error('Failed to save')
@@ -67,14 +73,17 @@ export default function AdminSkillsPage() {
       proficiency: skill.proficiency,
       display_order: skill.display_order,
     })
-    setShowForm(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this skill?')) return
+  const handleDelete = async (skill: Skill) => {
+    const ok = await confirm({
+      title: 'Delete skill',
+      message: `Delete "${skill.name}"?`,
+    })
+    if (!ok) return
 
     try {
-      const res = await fetch(`/api/skills/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/skills/${skill.id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed to delete')
 
       toast.success('Skill deleted!')
@@ -88,7 +97,6 @@ export default function AdminSkillsPage() {
   const resetForm = () => {
     setFormData({ name: '', category: '', proficiency: 50, display_order: 0 })
     setEditingSkill(null)
-    setShowForm(false)
   }
 
   const columns = [
@@ -99,45 +107,36 @@ export default function AdminSkillsPage() {
   ]
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Skills</h1>
-        <button
-          onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          + Add Skill
-        </button>
-      </div>
+    <div className="space-y-6">
+      <p className="text-sm text-zinc-500">Skills shown on the about page.</p>
 
-      {showForm && (
-        <div className="mb-6 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+        <div className="admin-panel mb-6 p-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
             {editingSkill ? 'Edit Skill' : 'Add New Skill'}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="admin-label">
                   Skill Name
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="admin-input"
                   placeholder="e.g., React"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="admin-label">
                   Category
                 </label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="admin-input"
                   required
                 >
                   <option value="">Select Category</option>
@@ -150,7 +149,7 @@ export default function AdminSkillsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="admin-label">
                   Proficiency (0-100)
                 </label>
                 <input
@@ -158,41 +157,40 @@ export default function AdminSkillsPage() {
                   min="0"
                   max="100"
                   value={formData.proficiency}
-                  onChange={(e) => setFormData({ ...formData, proficiency: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  onChange={(e) => setFormData({ ...formData, proficiency: numberField(e.target.value) })}
+                  className="admin-input"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="admin-label">
                   Display Order
                 </label>
                 <input
                   type="number"
                   value={formData.display_order}
-                  onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  onChange={(e) => setFormData({ ...formData, display_order: numberField(e.target.value) })}
+                  className="admin-input"
                 />
               </div>
             </div>
             <div className="flex gap-4">
               <button
                 type="submit"
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="admin-btn"
               >
                 {editingSkill ? 'Update' : 'Add'} Skill
               </button>
               <button
                 type="button"
                 onClick={resetForm}
-                className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+                className="admin-btn-ghost"
               >
                 Cancel
               </button>
             </div>
           </form>
         </div>
-      )}
 
       <DataTable
         data={skills}

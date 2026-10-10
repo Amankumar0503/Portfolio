@@ -8,6 +8,16 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function numberField(value: string): number | "" {
+  if (value.trim() === "") return "";
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? "" : parsed;
+}
+
+export function numberOrZero(value: number | "") {
+  return value === "" ? 0 : value;
+}
+
 /**
  * Format date to readable string
  */
@@ -25,7 +35,7 @@ export function formatDate(date: string | Date): string {
  */
 export function formatDateRange(
   startDate: string,
-  endDate?: string,
+  endDate?: string | null,
   isCurrent?: boolean
 ): string {
   const start = new Date(startDate).toLocaleDateString("en-US", {

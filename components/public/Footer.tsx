@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { SocialLink } from '@/types'
+import SocialIcon from '@/components/public/SocialIcon'
 
 export default function Footer() {
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([])
@@ -73,7 +74,9 @@ export default function Footer() {
                   className="w-12 h-12 flex items-center justify-center rounded-xl glass-strong glass-hover text-gray-800 dark:text-white/90 hover:text-gray-900 dark:hover:text-white transition-all group shadow-lg"
                   aria-label={social.platform}
                 >
-                  <span className="text-2xl group-hover:scale-110 transition-transform">{social.icon}</span>
+                  <span className="group-hover:scale-110 transition-transform">
+                    <SocialIcon name={social.icon || social.platform} />
+                  </span>
                 </a>
               ))}
             </div>

@@ -1,43 +1,47 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/auth";
+import {
+  collections,
+  deleteDocById,
+  updateDocById,
+} from "@/lib/mongo/store";
+import type { Experience } from "@/types";
 
-// PUT - Admin only: Update experience
+export const runtime = "nodejs";
+
+function asExperience(body: Record<string, unknown>) {
+  const endDate = body.end_date;
+  return {
+    ...body,
+    type: body.type ?? "experience",
+    end_date: endDate === "" || body.is_current ? null : endDate,
+  };
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const denied = await requireAdmin();
+    if (denied) return denied;
+
     const { id } = await params;
-    const supabase = await createClient();
+    const body = asExperience(await request.json());
+    const experience = await updateDocById<Experience>(
+      collections.timeline,
+      id,
+      body
+    );
 
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!experience) {
+      return NextResponse.json(
+        { error: "Experience not found" },
+        { status: 404 }
+      );
     }
 
-    const body = await request.json();
-
-    // Convert empty string to null for end_date
-    if (body.end_date === "" || body.is_current) {
-      body.end_date = null;
-    }
-
-    const { data, error } = await supabase
-      .from("experiences")
-      .update(body)
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json(data);
+    return NextResponse.json(experience);
   } catch (error) {
     console.error("Error updating experience:", error);
     return NextResponse.json(
@@ -47,30 +51,16 @@ export async function PUT(
   }
 }
 
-// DELETE - Admin only: Delete experience
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const denied = await requireAdmin();
+    if (denied) return denied;
+
     const { id } = await params;
-    const supabase = await createClient();
-
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { error } = await supabase.from("experiences").delete().eq("id", id);
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
+    await deleteDocById(collections.timeline, id);
     return NextResponse.json({ message: "Experience deleted successfully" });
   } catch (error) {
     console.error("Error deleting experience:", error);
