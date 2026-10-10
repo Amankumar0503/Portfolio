@@ -1,0 +1,33 @@
+# Free Render web service. It pulls the image GitHub Actions publishes to GHCR.
+# Create it from the Render dashboard: New → Blueprint, and connect this repo.
+# Add a workspace registry credential named "ghcr" first (GitHub username + a
+# PAT with read:packages). Render prompts for the sync:false values.
+services:
+  - type: web
+    name: portfolio
+    runtime: image
+    plan: free
+    region: singapore
+    healthCheckPath: /
+    image:
+      url: ghcr.io/amankumar0503/portfolio:main
+      creds:
+        fromRegistryCreds:
+          name: ghcr
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_DB
+        value: portfolio
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
